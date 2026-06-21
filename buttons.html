@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Glass Buttons</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        padding: 0;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: radial-gradient(ellipse at center, #1e1b4b 0%, #0a0a1a 100%);
+        font-family: sans-serif;
+        font-weight: 300;
+        overflow: hidden;
+      }
+
+      #bg-canvas {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+      }
+
+      #bg-canvas canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .wrapper {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        align-items: center;
+      }
+
+      .liquidGlass-wrapper {
+        position: relative;
+        display: flex;
+        font-weight: 600;
+        overflow: hidden;
+        color: black;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 5px rgba(0, 0, 0, 0.05);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
+      }
+
+      .liquidGlass-effect {
+        position: absolute;
+        z-index: 0;
+        inset: 0;
+        backdrop-filter: blur(3px);
+        filter: url(#glass-distortion);
+        overflow: hidden;
+        isolation: isolate;
+      }
+
+      .liquidGlass-tint {
+        z-index: 1;
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .liquidGlass-shine {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        overflow: hidden;
+        box-shadow: inset 1px 1px 1px 0 rgba(255, 255, 255, 0.2),
+          inset -1px -1px 1px 0 rgba(255, 255, 255, 0.1);
+      }
+
+      .liquidGlass-text {
+        z-index: 3;
+        font-size: 2rem;
+        color: black;
+      }
+
+      .actions-bar {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .action-btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 1.5rem;
+      }
+
+      .action-btn,
+      .action-btn > div {
+        border-radius: 1.5rem;
+      }
+
+      .action-btn:hover {
+        padding: 0.7rem 1.3rem;
+      }
+
+      .action-btn:hover > div {
+        border-radius: 1.8rem;
+      }
+
+      .action-btn:active {
+        transform: scale(0.95);
+        box-shadow: 0 1px 1px rgba(0, 0, 0, 0.15), 0 0 3px rgba(0, 0, 0, 0.08);
+      }
+
+      .action-btn:active .liquidGlass-tint {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .action-btn.translate:active .liquidGlass-tint {
+        background: rgba(57, 197, 187, 0.1);
+      }
+
+      .action-btn .liquidGlass-text {
+        font-size: 0.9rem;
+        color: white;
+        font-weight: 500;
+      }
+
+      .action-btn.translate .liquidGlass-tint {
+        background: rgba(57, 197, 187, 0.15);
+      }
+
+      .action-btn.translate .liquidGlass-shine {
+        box-shadow: inset 1px 1px 1px 0 rgba(57, 197, 187, 0.3),
+          inset -1px -1px 1px 0 rgba(57, 197, 187, 0.15);
+      }
+
+      .toggle-switch {
+        position: relative;
+        display: flex;
+        padding: 0.4rem;
+        border-radius: 1.5rem;
+        background: rgba(255, 255, 255, 0.05);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 5px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+
+      .toggle-switch .liquidGlass-effect {
+        backdrop-filter: blur(2px);
+        filter: url(#glass-distortion);
+      }
+
+      .toggle-option {
+        position: relative;
+        z-index: 3;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        transition: color 0.3s ease, transform 0.1s ease;
+        user-select: none;
+      }
+
+      .toggle-option.active {
+        color: white;
+      }
+
+      .toggle-option:active {
+        transform: scale(0.92);
+      }
+
+      .toggle-slider {
+        position: absolute;
+        z-index: 2;
+        top: 0.4rem;
+        left: 0.4rem;
+        width: calc(50% - 0.4rem);
+        height: calc(100% - 0.8rem);
+        border-radius: 1.2rem;
+        background: rgba(57, 197, 187, 0.25);
+        box-shadow: inset 1px 1px 1px 0 rgba(57, 197, 187, 0.4),
+          inset -1px -1px 1px 0 rgba(57, 197, 187, 0.2);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .toggle-switch.local .toggle-slider {
+        transform: translateX(100%);
+      }
+
+      .input-card {
+        position: relative;
+        width: 320px;
+        min-height: 120px;
+        border-radius: 1.2rem;
+        overflow: hidden;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 0 5px rgba(0, 0, 0, 0.05);
+      }
+
+      .input-card .liquidGlass-effect {
+        backdrop-filter: blur(2px);
+        filter: url(#glass-distortion);
+      }
+
+      .input-card .liquidGlass-tint {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .input-card .liquidGlass-shine {
+        box-shadow: inset 1px 1px 1px 0 rgba(255, 255, 255, 0.15),
+          inset -1px -1px 1px 0 rgba(255, 255, 255, 0.08);
+      }
+
+      .input-card textarea {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        min-height: 120px;
+        padding: 1rem;
+        background: transparent;
+        border: none;
+        outline: none;
+        resize: none;
+        font-size: 0.95rem;
+        font-weight: 400;
+        color: white;
+        font-family: inherit;
+        line-height: 1.5;
+      }
+
+      .input-card textarea::placeholder {
+        color: rgba(255, 255, 255, 0.35);
+        font-style: italic;
+        font-weight: 300;
+        letter-spacing: 0.5px;
+      }
+
+      .input-card textarea:focus::placeholder {
+        opacity: 0.6;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="bg-canvas"></div>
+    <div class="wrapper">
+      <div class="actions-bar">
+        <div class="liquidGlass-wrapper action-btn translate">
+          <div class="liquidGlass-effect"></div>
+          <div class="liquidGlass-tint"></div>
+          <div class="liquidGlass-shine"></div>
+          <div class="liquidGlass-text">翻译</div>
+        </div>
+        <div class="liquidGlass-wrapper action-btn">
+          <div class="liquidGlass-effect"></div>
+          <div class="liquidGlass-tint"></div>
+          <div class="liquidGlass-shine"></div>
+          <div class="liquidGlass-text">语音</div>
+        </div>
+        <div class="liquidGlass-wrapper action-btn">
+          <div class="liquidGlass-effect"></div>
+          <div class="liquidGlass-tint"></div>
+          <div class="liquidGlass-shine"></div>
+          <div class="liquidGlass-text">示例</div>
+        </div>
+      </div>
+
+      <div class="toggle-switch" id="networkToggle">
+        <div class="liquidGlass-effect"></div>
+        <div class="toggle-slider"></div>
+        <div class="toggle-option active" data-value="online">联网</div>
+        <div class="toggle-option" data-value="local">本地</div>
+      </div>
+
+      <div class="input-card">
+        <div class="liquidGlass-effect"></div>
+        <div class="liquidGlass-tint"></div>
+        <div class="liquidGlass-shine"></div>
+        <textarea placeholder="粘贴通知内容，或点击语音按钮输入"></textarea>
+      </div>
+    </div>
+
+    <svg style="display: none">
+      <filter
+        id="glass-distortion"
+        x="0%"
+        y="0%"
+        width="100%"
+        height="100%"
+        filterUnits="objectBoundingBox"
+      >
+        <feTurbulence
+          type="fractalNoise"
+          baseFrequency="0.01 0.01"
+          numOctaves="1"
+          seed="5"
+          result="turbulence"
+        />
+        <feComponentTransfer in="turbulence" result="mapped">
+          <feFuncR type="gamma" amplitude="1" exponent="10" offset="0.5" />
+          <feFuncG type="gamma" amplitude="0" exponent="1" offset="0" />
+          <feFuncB type="gamma" amplitude="0" exponent="1" offset="0.5" />
+        </feComponentTransfer>
+        <feGaussianBlur in="turbulence" stdDeviation="3" result="softMap" />
+        <feSpecularLighting
+          in="softMap"
+          surfaceScale="5"
+          specularConstant="1"
+          specularExponent="100"
+          lighting-color="white"
+          result="specLight"
+        >
+          <fePointLight x="-200" y="-200" z="300" />
+        </feSpecularLighting>
+        <feComposite
+          in="specLight"
+          operator="arithmetic"
+          k1="0"
+          k2="1"
+          k3="1"
+          k4="0"
+          result="litImage"
+        />
+        <feDisplacementMap
+          in="SourceGraphic"
+          in2="softMap"
+          scale="150"
+          xChannelSelector="R"
+          yChannelSelector="G"
+        />
+      </filter>
+    </svg>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+      }
+    }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+
+      const palette = [
+        new THREE.Color(0x6366f1),
+        new THREE.Color(0xec4899),
+        new THREE.Color(0x06b6d4),
+        new THREE.Color(0x8b5cf6),
+        new THREE.Color(0x14b8a6)
+      ];
+
+      const vertexShader = `
+        attribute float size;
+        attribute vec3 color;
+        varying vec3 vColor;
+        void main() {
+          vColor = color;
+          vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+          gl_PointSize = size * (300.0 / -mvPosition.z);
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `;
+
+      const fragmentShader = `
+        varying vec3 vColor;
+        void main() {
+          float d = length(gl_PointCoord - vec2(0.5));
+          if (d > 0.5) discard;
+          float alpha = 1.0 - smoothstep(0.0, 0.5, d);
+          gl_FragColor = vec4(vColor, alpha * 0.8);
+        }
+      `;
+
+      // 背景粒子
+      const bgContainer = document.getElementById('bg-canvas');
+      const bgScene = new THREE.Scene();
+      const bgCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      bgCamera.position.z = 30;
+
+      const bgRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      bgRenderer.setSize(window.innerWidth, window.innerHeight);
+      bgRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      bgContainer.appendChild(bgRenderer.domElement);
+
+      const bgParticleCount = 1800;
+      const bgGeometry = new THREE.BufferGeometry();
+      const bgPositions = new Float32Array(bgParticleCount * 3);
+      const bgColors = new Float32Array(bgParticleCount * 3);
+      const bgSizes = new Float32Array(bgParticleCount);
+
+      for (let i = 0; i < bgParticleCount; i++) {
+        const i3 = i * 3;
+        bgPositions[i3] = (Math.random() - 0.5) * 100;
+        bgPositions[i3 + 1] = (Math.random() - 0.5) * 100;
+        bgPositions[i3 + 2] = (Math.random() - 0.5) * 100 - 20;
+
+        const color = palette[Math.floor(Math.random() * palette.length)];
+        bgColors[i3] = color.r;
+        bgColors[i3 + 1] = color.g;
+        bgColors[i3 + 2] = color.b;
+
+        bgSizes[i] = Math.random() * 2 + 0.5;
+      }
+
+      bgGeometry.setAttribute('position', new THREE.BufferAttribute(bgPositions, 3));
+      bgGeometry.setAttribute('color', new THREE.BufferAttribute(bgColors, 3));
+      bgGeometry.setAttribute('size', new THREE.BufferAttribute(bgSizes, 1));
+
+      const bgMaterial = new THREE.ShaderMaterial({
+        vertexShader,
+        fragmentShader,
+        transparent: true,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+
+      const bgParticles = new THREE.Points(bgGeometry, bgMaterial);
+      bgScene.add(bgParticles);
+
+      const torusKnot = new THREE.Mesh(
+        new THREE.TorusKnotGeometry(8, 2, 128, 32),
+        new THREE.MeshBasicMaterial({
+          color: 0x6366f1,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.15
+        })
+      );
+      bgScene.add(torusKnot);
+
+      let mouseX = 0, mouseY = 0;
+      let targetX = 0, targetY = 0;
+
+      document.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+        mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+      });
+
+      window.addEventListener('resize', () => {
+        bgCamera.aspect = window.innerWidth / window.innerHeight;
+        bgCamera.updateProjectionMatrix();
+        bgRenderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      const clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const elapsed = clock.getElapsedTime();
+
+        targetX += (mouseX * 0.5 - targetX) * 0.05;
+        targetY += (mouseY * 0.5 - targetY) * 0.05;
+
+        bgParticles.rotation.y = elapsed * 0.05;
+        bgParticles.rotation.x = targetY * 0.3;
+        bgCamera.position.x += (targetX * 3 - bgCamera.position.x) * 0.05;
+        bgCamera.position.y += (targetY * 3 - bgCamera.position.y) * 0.05;
+        bgCamera.lookAt(bgScene.position);
+
+        torusKnot.rotation.x = elapsed * 0.2;
+        torusKnot.rotation.y = elapsed * 0.15;
+
+        bgRenderer.render(bgScene, bgCamera);
+      }
+      animate();
+
+      // 滑动开关交互
+      const toggleSwitch = document.getElementById('networkToggle');
+      const options = toggleSwitch.querySelectorAll('.toggle-option');
+
+      options.forEach(option => {
+        option.addEventListener('click', () => {
+          const value = option.dataset.value;
+
+          // 更新 active 状态
+          options.forEach(opt => opt.classList.remove('active'));
+          option.classList.add('active');
+
+          // 更新滑动块位置
+          if (value === 'local') {
+            toggleSwitch.classList.add('local');
+          } else {
+            toggleSwitch.classList.remove('local');
+          }
+
+          console.log('当前模式:', value === 'online' ? '联网' : '本地');
+        });
+      });
+    </script>
+  </body>
+</html>
